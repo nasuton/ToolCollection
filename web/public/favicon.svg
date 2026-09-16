@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Webツール — ブラウザとレンチ</title>
+  <rect width="64" height="64" rx="14" fill="#0b57d0" />
+  <rect x="8" y="10" width="48" height="46" rx="5" fill="none" stroke="#ffffff" stroke-width="4" />
+  <path d="M10 22h44" fill="none" stroke="#ffffff" stroke-width="4" />
+  <circle cx="15" cy="16" r="2" fill="#ffffff" />
+  <circle cx="23" cy="16" r="2" fill="#ffffff" />
+  <path d="M43 28a8 8 0 0 0-10 9L22 48a3.5 3.5 0 0 0 5 5l11-11a8 8 0 0 0 9-10l-5 5-4-4 5-5Z" fill="#67e8f9" />
+</svg>

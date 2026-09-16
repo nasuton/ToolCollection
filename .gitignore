@@ -1,0 +1,7 @@
+# Build artifacts staged into the frontend
+web/public/main.wasm
+web/public/wasm_exec.js
+web/dist/
+
+# Node
+web/node_modules/

@@ -1,0 +1,36 @@
+:root {
+  --bg: #ffffff;
+  --surface: #f6f7f9;
+  --border: #d3d7de;
+  --text: #1b1f24;
+  --muted: #55606e;
+  --accent: #0b57d0;
+  --accent-hover: #0842a0;
+  --danger: #b3261e;
+
+  color-scheme: light;
+  font-family: system-ui, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  line-height: 1.6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+#root {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+}
+
+/* Visible focus for keyboard users on every interactive element. */
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
