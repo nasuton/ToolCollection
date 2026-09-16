@@ -242,10 +242,6 @@ select {
 
 /* --- footer --- */
 .site-footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem 0.6rem;
   margin-top: 3rem;
   padding-top: 1.25rem;
   border-top: 1px solid var(--border);
@@ -256,8 +252,16 @@ select {
   color: var(--accent);
 }
 
-.footer-pending {
+.footer-technologies {
+  margin: 0 0 0.75rem;
   color: var(--muted);
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
 }
 
 .tool-section {

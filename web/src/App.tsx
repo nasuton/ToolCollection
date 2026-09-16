@@ -9,8 +9,7 @@ import { RegexTool } from './tools/RegexTool';
 import { QrTool } from './tools/QrTool';
 import './App.css';
 
-// Set this URL after creating the source repository.
-const SOURCE_CODE_URL: string = '';
+const SOURCE_CODE_URL = 'https://github.com/nasuton/ToolCollection';
 
 const TABS = [
   { id: 'password', label: 'パスワード / UUID 生成（crypto/rand）' },
@@ -126,15 +125,16 @@ export default function App() {
       </main>
 
       <footer className="site-footer">
-        <a href="https://nasuton.net/blog/" target="_blank" rel="noopener noreferrer">ナストンのまとめ(技術ブログ)</a>
-        <span aria-hidden="true">/</span>
-        <a href="https://nasuton.github.io/" target="_blank" rel="noopener noreferrer">About Me</a>
-        <span aria-hidden="true">/</span>
-        {SOURCE_CODE_URL ? (
+        <p className="footer-technologies">
+          使用技術：Go / WebAssembly / React / TypeScript / CSS / Vite / GitHub Pages
+        </p>
+        <nav className="footer-links" aria-label="関連リンク">
+          <a href="https://nasuton.net/blog/" target="_blank" rel="noopener noreferrer">ナストンのまとめ(技術ブログ)</a>
+          <span aria-hidden="true">/</span>
+          <a href="https://nasuton.github.io/" target="_blank" rel="noopener noreferrer">About Me</a>
+          <span aria-hidden="true">/</span>
           <a href={SOURCE_CODE_URL} target="_blank" rel="noopener noreferrer">ソースコード</a>
-        ) : (
-          <span className="footer-pending" title="リポジトリ作成後にリンクを設定します">ソースコード</span>
-        )}
+        </nav>
       </footer>
     </WasmProvider>
   );
