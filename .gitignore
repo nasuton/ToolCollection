@@ -5,3 +5,6 @@ web/dist/
 
 # Node
 web/node_modules/
+
+# IDE
+.idea/

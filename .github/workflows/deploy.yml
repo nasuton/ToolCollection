@@ -36,8 +36,11 @@ jobs:
         id: pages
         uses: actions/configure-pages@v5
 
-      - name: Test Go logic
-        run: go test ./internal/...
+      - name: Vet and test Go code
+        run: |
+          go vet ./...
+          go test ./...
+          GOOS=js GOARCH=wasm go vet ./cmd/...
 
       - name: Build WASM
         run: make wasm
@@ -54,6 +57,27 @@ jobs:
         env:
           PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
         run: npm run build -- --base "${PAGES_BASE_PATH}/"
+
+      - name: Lint frontend
+        working-directory: web
+        run: npm run lint
+
+      - name: Install Playwright Chromium
+        working-directory: web
+        run: npx playwright-core install --with-deps chromium
+
+      # Both scripts run against web/dist, so they exercise the exact artifact being deployed.
+      - name: Browser end-to-end tests
+        working-directory: web
+        env:
+          E2E_BROWSER: chromium
+        run: npm run e2e
+
+      - name: Accessibility audit (axe, WCAG 2.1 AA)
+        working-directory: web
+        env:
+          E2E_BROWSER: chromium
+        run: npm run a11y
 
       - uses: actions/upload-pages-artifact@v3
         with:

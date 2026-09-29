@@ -11,7 +11,7 @@
     build   - wasm + npm ci + npm run build
     dev     - wasm + npm install + npm run dev
     preview - build + npm run preview
-    test    - go test ./internal/...
+    test    - go vet ./... + go test ./... + GOOS=js GOARCH=wasm go vet ./cmd/...
     clean   - Remove generated wasm artifacts and web/dist
 
 .EXAMPLE
@@ -65,7 +65,8 @@ function Build-Wasm {
         $env:GOARCH = 'wasm'
         Push-Location $root
         try {
-            Invoke-Checked go @('build', '-o', $wasmOut, './cmd/wasm')
+            # -s -w strips symbol/DWARF data (~2% smaller); -trimpath keeps the build reproducible.
+            Invoke-Checked go @('build', '-trimpath', '-ldflags=-s -w', '-o', $wasmOut, './cmd/wasm')
         } finally {
             Pop-Location
         }
@@ -137,7 +138,18 @@ switch ($Task) {
     'test' {
         Push-Location $root
         try {
-            Invoke-Checked go @('test', './internal/...')
+            Invoke-Checked go @('vet', './...')
+            Invoke-Checked go @('test', './...')
+            $prevGoos = $env:GOOS
+            $prevGoarch = $env:GOARCH
+            try {
+                $env:GOOS = 'js'
+                $env:GOARCH = 'wasm'
+                Invoke-Checked go @('vet', './cmd/...')
+            } finally {
+                $env:GOOS = $prevGoos
+                $env:GOARCH = $prevGoarch
+            }
         } finally {
             Pop-Location
         }

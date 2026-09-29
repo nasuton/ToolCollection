@@ -24,13 +24,25 @@ Web のタブは次の順です。各処理は `internal` のパッケージに�
 検証コマンド:
 
 ```powershell
-go test ./internal/...
+go vet ./...
+go test ./...
+$env:GOOS='js'; $env:GOARCH='wasm'; go vet ./cmd/...; Remove-Item Env:GOOS, Env:GOARCH
 .\build.ps1 wasm
 node verify.mjs (go env GOROOT) web/public/main.wasm
 cd web
 npm run build
 npm run lint
+$env:E2E_BROWSER='msedge'; npm run e2e; npm run a11y
 ```
+
+## ブラウザテスト（e2e / a11y）
+
+`web/e2e.mjs`（機能テスト）と `web/a11y.mjs`（axe-core による WCAG 2.1 AA 監査）は、`npm run build` で生成した `web/dist/` をビルド時の `base` のまま静的配信し、playwright-core でヘッドレスブラウザから検証します。CI（`deploy.yml`）では `npm run build` の後に `npm run lint` → `npm run e2e` → `npm run a11y` を実行し、デプロイする成果物そのものを検証します。
+
+- `E2E_BROWSER=chromium`（既定）: Playwright の Chromium を使用。事前に `npx playwright-core install chromium`（Linux は `--with-deps` 付き）が必要です。
+- `E2E_BROWSER=msedge`: ローカルにインストール済みの Microsoft Edge を使用（Windows で手軽に実行する場合）。
+
+e2e は 6 タブすべてについて「タブ選択でパネルが切り替わる」「矢印キー / Home / End によるタブ移動」「各ツールの正常系 1 件（SHA-256 の既知ベクトル、UUID v4 形式、JWT の HS256 検証、JSON → YAML、正規表現の一致、QR 生成、生成した PNG を読み取るラウンドトリップ）」「コンソールエラー 0 件」を確認します。タブ名は `src/App.tsx` の `TABS` と一致することをテスト内で検証しています。a11y は各タブを順に選択して axe を実行し、違反があれば一覧を出して非 0 で終了します。
 
 # 実行方法
 Go のロジックを WebAssembly にビルドし、Go ツールチェーンに含まれる `wasm_exec.js` を `web/public/` に配置してから、Vite でフロントエンドをビルド・起動します。
@@ -48,7 +60,7 @@ Go のロジックを WebAssembly にビルドし、Go ツールチェーンに�
 .\build.ps1 dev      # wasm + npm install + npm run dev（開発サーバー起動）
 .\build.ps1 build    # wasm + npm ci + npm run build
 .\build.ps1 preview  # build + npm run preview
-.\build.ps1 test     # go test ./internal/...
+.\build.ps1 test     # go vet ./... + go test ./... + GOOS=js GOARCH=wasm go vet ./cmd/...
 .\build.ps1 clean    # 生成物（main.wasm, wasm_exec.js, web/dist）を削除
 ```
 
@@ -63,7 +75,7 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1 preview
 make wasm    # main.wasm と wasm_exec.js を web/public/ に生成
 make dev     # wasm + npm install + npm run dev
 make build   # wasm + npm ci + npm run build
-make test    # go test ./internal/...
+make test    # go vet ./... + go test ./... + GOOS=js GOARCH=wasm go vet ./cmd/...
 make clean   # 生成物を削除
 ```
 
@@ -78,3 +90,42 @@ cd web && npm run preview
 
 - 開発サーバー: `http://localhost:5173/go-wasm-tools/`
 - プレビュー: `http://localhost:4173/go-wasm-tools/`
+
+# WebAssembly のサイズについて
+
+`main.wasm` は 1 ファイルに全ツールを含めています。ビルドには `-trimpath -ldflags="-s -w"` を付けています（`Makefile` / `build.ps1`）。
+
+## 計測結果（Go 1.26.3、`GOOS=js GOARCH=wasm`、gzip は最高圧縮）
+
+| ビルド | raw | gzip |
+|---|---:|---:|
+| `-s -w` なし（以前の設定） | 9,178,362 B (9.18 MB) | 2,705,659 B (2.71 MB) |
+| `-trimpath -ldflags="-s -w"`（現在の設定） | 8,984,752 B (8.98 MB) | 2,661,210 B (2.66 MB) |
+| 上記から QR 読み取り（`internal/qr/decode.go` と `readQR`）を完全に除外 | 7,558,504 B (7.56 MB) | 2,110,541 B (2.11 MB) |
+| 参考: `syscall/js` + `encoding/json` だけの最小 wasm | 3,102,767 B (3.10 MB) | — |
+
+QR 読み取り（gozxing + `image/jpeg`・`image/gif` + `golang.org/x/text/encoding` の文字コード表）を別 wasm に分割して遅延ロードしても、削減は **raw 17.6% / gzip 22.0%** にとどまるため、ランタイムを 2 つ持つ複雑さに見合わないと判断して分割は見送りました。再計測する場合は `readQR` の登録を外すだけでなく `decode.go` をパッケージから外す必要があります（同一パッケージに残すと `image/*` の `init` 登録経由でリンクされ、差が正しく出ません）。
+
+## パッケージ別の概算
+
+wasm バイナリは `go tool nm` に対応していないため、同じ `internal/*` を呼ぶネイティブビルド（windows/amd64）を `go tool nm -size` で集計した概算です（BSS と rodata の別名を除外。`runtime` には pclntab 約 1.4 MB を含む）。wasm の絶対値とは一致しませんが比率の目安になります。
+
+| 領域 | 概算 | 割合 | 備考 |
+|---|---:|---:|---|
+| runtime + internal/*（GC・スケジューラ・pclntab） | 2,493 KB | 43% | 削れない固定費 |
+| その他データ（型情報・文字列など） | 849 KB | 15% | |
+| `golang.org/x/text/encoding`（日中韓の文字コード表） | 691 KB | 12% | gozxing が QR の文字コード判定用に取り込む |
+| `crypto/x509` + `rsa` + `ecdsa` + `asn1` | 531 KB | 9% | JWT の RS256 / ES256 に必要 |
+| 標準ライブラリその他（`fmt`, `strconv`, `unicode`, `compress/zlib` …） | 366 KB | 6% | |
+| `gopkg.in/yaml.v3` | 198 KB | 3% | JSON ⇄ YAML |
+| `github.com/makiuchi-d/gozxing` | 135 KB | 2% | QR 読み取り本体 |
+| `regexp` | 95 KB | 2% | |
+| `image/*`（png / jpeg / gif） | 94 KB | 2% | |
+| `encoding/json` / `reflect` | 153 KB | 3% | |
+| `github.com/skip2/go-qrcode` / bcrypt / このリポジトリ | 68 KB | 1% | |
+
+## 今後の選択肢（未実装）
+
+- gozxing が引き込む `golang.org/x/text/encoding`（約 0.7 MB）は QR 内の Shift_JIS 等の判定用で、gozxing 側の実装に依存するため fork なしでは外せない。
+- `crypto/x509` 系（約 0.5 MB）は JWT の RS256 / ES256 の PEM 公開鍵解析に使っており、HS256 のみに絞らない限り外せない。
+- ランタイム約 3 MB は Go の wasm 固定費で、TinyGo への移行以外に大きく削る手段がない（`syscall/js` 互換や `reflect` 依存の `encoding/json`・yaml の挙動差を確認する必要がある）。
