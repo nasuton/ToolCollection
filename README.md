@@ -32,7 +32,17 @@ node verify.mjs (go env GOROOT) web/public/main.wasm
 cd web
 npm run build
 npm run lint
+$env:E2E_BROWSER='msedge'; npm run e2e; npm run a11y
 ```
+
+## ブラウザテスト（e2e / a11y）
+
+`web/e2e.mjs`（機能テスト）と `web/a11y.mjs`（axe-core による WCAG 2.1 AA 監査）は、`npm run build` で生成した `web/dist/` をビルド時の `base` のまま静的配信し、playwright-core でヘッドレスブラウザから検証します。CI（`deploy.yml`）では `npm run build` の後に `npm run lint` → `npm run e2e` → `npm run a11y` を実行し、デプロイする成果物そのものを検証します。
+
+- `E2E_BROWSER=chromium`（既定）: Playwright の Chromium を使用。事前に `npx playwright-core install chromium`（Linux は `--with-deps` 付き）が必要です。
+- `E2E_BROWSER=msedge`: ローカルにインストール済みの Microsoft Edge を使用（Windows で手軽に実行する場合）。
+
+e2e は 6 タブすべてについて「タブ選択でパネルが切り替わる」「矢印キー / Home / End によるタブ移動」「各ツールの正常系 1 件（SHA-256 の既知ベクトル、UUID v4 形式、JWT の HS256 検証、JSON → YAML、正規表現の一致、QR 生成、生成した PNG を読み取るラウンドトリップ）」「コンソールエラー 0 件」を確認します。タブ名は `src/App.tsx` の `TABS` と一致することをテスト内で検証しています。a11y は各タブを順に選択して axe を実行し、違反があれば一覧を出して非 0 で終了します。
 
 # 実行方法
 Go のロジックを WebAssembly にビルドし、Go ツールチェーンに含まれる `wasm_exec.js` を `web/public/` に配置してから、Vite でフロントエンドをビルド・起動します。
