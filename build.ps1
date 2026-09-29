@@ -65,7 +65,8 @@ function Build-Wasm {
         $env:GOARCH = 'wasm'
         Push-Location $root
         try {
-            Invoke-Checked go @('build', '-o', $wasmOut, './cmd/wasm')
+            # -s -w strips symbol/DWARF data (~2% smaller); -trimpath keeps the build reproducible.
+            Invoke-Checked go @('build', '-trimpath', '-ldflags=-s -w', '-o', $wasmOut, './cmd/wasm')
         } finally {
             Pop-Location
         }
