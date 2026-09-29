@@ -24,7 +24,9 @@ Web のタブは次の順です。各処理は `internal` のパッケージに�
 検証コマンド:
 
 ```powershell
-go test ./internal/...
+go vet ./...
+go test ./...
+$env:GOOS='js'; $env:GOARCH='wasm'; go vet ./cmd/...; Remove-Item Env:GOOS, Env:GOARCH
 .\build.ps1 wasm
 node verify.mjs (go env GOROOT) web/public/main.wasm
 cd web
@@ -48,7 +50,7 @@ Go のロジックを WebAssembly にビルドし、Go ツールチェーンに�
 .\build.ps1 dev      # wasm + npm install + npm run dev（開発サーバー起動）
 .\build.ps1 build    # wasm + npm ci + npm run build
 .\build.ps1 preview  # build + npm run preview
-.\build.ps1 test     # go test ./internal/...
+.\build.ps1 test     # go vet ./... + go test ./... + GOOS=js GOARCH=wasm go vet ./cmd/...
 .\build.ps1 clean    # 生成物（main.wasm, wasm_exec.js, web/dist）を削除
 ```
 
@@ -63,7 +65,7 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1 preview
 make wasm    # main.wasm と wasm_exec.js を web/public/ に生成
 make dev     # wasm + npm install + npm run dev
 make build   # wasm + npm ci + npm run build
-make test    # go test ./internal/...
+make test    # go vet ./... + go test ./... + GOOS=js GOARCH=wasm go vet ./cmd/...
 make clean   # 生成物を削除
 ```
 
